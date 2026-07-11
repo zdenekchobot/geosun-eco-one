@@ -17,8 +17,7 @@ Vibe coding - Github Copilot
 2. Restartuj Home Assistant.
 3. V UI otevri `Settings -> Devices & services -> Add Integration`.
 4. Vyhledej `Geosun Eco One` a vypln:
-   - IP/hostname jednotky
-  - lze zadat `192.168.1.50`, `192.168.1.50:80` i `http://192.168.1.50`
+   - IP/hostname jednotky (napr.`192.168.1.50`, `192.168.1.50:80` i `http://192.168.1.50`)
    - uzivatel
    - heslo
    - interval aktualizace (minimalne 15 s)
@@ -26,7 +25,7 @@ Vibe coding - Github Copilot
 
 ## Vychozi entity
 
-Aktualni obsahuje 24 entit.
+Aktualne obsahuje 24 entit.
 
 ### Senzory
 
