@@ -1,0 +1,44 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Geosun Eco One",
+        "description": "Nastaveni pripojeni k jednotce GEOSUN Eco One.",
+        "data": {
+          "host": "IP adresa nebo hostname jednotky",
+          "username": "Uzivatel",
+          "password": "Heslo",
+          "scan_interval": "Interval aktualizace (sekundy)",
+          "device_id": "ID zarizeni",
+          "device_name": "Nazev zarizeni",
+          "device_model": "Model zarizeni",
+          "device_manufacturer": "Vyrobce zarizeni"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nelze se pripojit k jednotce",
+      "invalid_auth": "Neplatne prihlasovaci udaje",
+      "unknown": "Neocekavana chyba"
+    },
+    "abort": {
+      "already_configured": "Tato jednotka je jiz nakonfigurovana"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Moznosti Geosun Eco One",
+        "description": "Vyber vychozich entit a pripadne doplneni vlastnich entit ve formatu JSON.",
+        "data": {
+          "scan_interval": "Interval aktualizace (sekundy)",
+          "enabled_default_entities": "Vychozi entity",
+          "additional_entities": "JSON dalsich entit"
+        }
+      }
+    },
+    "error": {
+      "invalid_additional_entities": "Neplatny JSON dalsich entit"
+    }
+  }
+}

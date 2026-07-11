@@ -1,0 +1,15 @@
+{
+  "domain": "geosun_eco_one",
+  "name": "Geosun Eco One",
+  "codeowners": [
+    "@zdenekchobot"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/zdenekchobot/geosun",
+  "iot_class": "local_polling",
+  "loggers": [
+    "custom_components.geosun_eco_one"
+  ],
+  "requirements": [],
+  "version": "0.1.0"
+}

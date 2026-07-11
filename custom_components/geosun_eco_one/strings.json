@@ -1,0 +1,44 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Geosun Eco One",
+        "description": "Connection settings for your GEOSUN Eco One unit.",
+        "data": {
+          "host": "Unit IP address or hostname",
+          "username": "Username",
+          "password": "Password",
+          "scan_interval": "Update interval (seconds)",
+          "device_id": "Device ID",
+          "device_name": "Device name",
+          "device_model": "Device model",
+          "device_manufacturer": "Device manufacturer"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the unit",
+      "invalid_auth": "Invalid username or password",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This unit is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Geosun Eco One options",
+        "description": "Select default entities and optionally add custom ones in JSON format.",
+        "data": {
+          "scan_interval": "Update interval (seconds)",
+          "enabled_default_entities": "Default entities",
+          "additional_entities": "Additional entities JSON"
+        }
+      }
+    },
+    "error": {
+      "invalid_additional_entities": "Invalid additional entities JSON"
+    }
+  }
+}
