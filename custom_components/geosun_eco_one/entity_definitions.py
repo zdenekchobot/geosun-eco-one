@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from typing import Any
+
+import yaml
 
 
 @dataclass(frozen=True, slots=True)
@@ -292,7 +293,7 @@ DEFAULT_ENTITIES: dict[str, GeosunEntityDescription] = {
 
 def build_entity_definitions(
     enabled_default_entities: list[str] | None,
-    additional_entities_json: str,
+    additional_entities_yaml: str,
 ) -> dict[str, GeosunEntityDescription]:
     """Build final definitions from default + user additions."""
     if enabled_default_entities is None:
@@ -306,20 +307,24 @@ def build_entity_definitions(
         if key in selected
     }
 
-    for entity in parse_additional_entities(additional_entities_json):
+    for entity in parse_additional_entities(additional_entities_yaml):
         entities[entity.object_id] = entity
 
     return entities
 
 
 def parse_additional_entities(text: str) -> list[GeosunEntityDescription]:
-    """Parse additional entities in JSON format."""
+    """Parse additional entities in YAML format."""
     if not text.strip():
         return []
 
-    parsed = json.loads(text)
+    try:
+        parsed = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise ValueError("Additional entities must be valid YAML") from exc
+
     if not isinstance(parsed, list):
-        raise ValueError("Additional entities must be a JSON list")
+        raise ValueError("Additional entities must be a YAML list")
 
     items: list[GeosunEntityDescription] = []
     for item in parsed:

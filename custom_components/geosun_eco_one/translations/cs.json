@@ -29,16 +29,16 @@
     "step": {
       "init": {
         "title": "Moznosti Geosun Eco One",
-        "description": "Vyber vychozich entit a pripadne doplneni vlastnich entit ve formatu JSON.",
+        "description": "Vyber vychozich entit a pripadne doplneni vlastnich entit ve formatu YAML.",
         "data": {
           "scan_interval": "Interval aktualizace (sekundy)",
           "enabled_default_entities": "Vychozi entity",
-          "additional_entities": "JSON dalsich entit"
+          "additional_entities": "YAML dalsich entit"
         }
       }
     },
     "error": {
-      "invalid_additional_entities": "Neplatny JSON dalsich entit"
+      "invalid_additional_entities": "Neplatny YAML dalsich entit"
     }
   }
 }

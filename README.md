@@ -9,7 +9,7 @@ Vibe coding - Github Copilot
 - Pravidelne nacitat stavy z XML stranek jednotky.
 - Vytvorit vychozi entity prevzate z puvodni AppDaemon aplikace.
 - Umoznit ovladani zapisovatelnych entit (`switch`, `number`, `text`).
-- Umoznit jednoduche pridani vlastnich entit v `Options` jako JSON.
+- Umoznit jednoduche pridani vlastnich entit v `Options` jako YAML.
 
 ## Instalace
 
@@ -68,39 +68,34 @@ Aktualne obsahuje 24 entit.
 
 ## Pridani vlastnich entit
 
-V detailu integrace otevri `Configure` a pole `Additional entities JSON`.
+V detailu integrace otevri `Configure` a pole `Additional entities YAML`.
 
-Format je pole objektu:
+Format je YAML seznam objektu:
 
-```json
-[
-  {
-    "object_id": "pool_temperature",
-    "page": "PAGE210.XML",
-    "value_key": "__T12345678_REAL_.1f",
-    "kind": "sensor",
-    "name": "Pool temperature",
-    "device_class": "temperature",
-    "icon": "mdi:pool",
-    "unit": "C",
-    "precision": 1
-  },
-  {
-    "object_id": "pool_target_temperature",
-    "page": "PAGE210.XML",
-    "value_key": "__T87654321_REAL_.1f",
-    "kind": "number",
-    "name": "Pool target temperature",
-    "device_class": "temperature",
-    "icon": "mdi:thermometer",
-    "unit": "C",
-    "precision": 1,
-    "mode": "slider",
-    "min_value": 20,
-    "max_value": 35,
-    "step": 0.5
-  }
-]
+```yaml
+- object_id: pool_temperature
+  page: PAGE210.XML
+  value_key: __T12345678_REAL_.1f
+  kind: sensor
+  name: Pool temperature
+  device_class: temperature
+  icon: mdi:pool
+  unit: C
+  precision: 1
+
+- object_id: pool_target_temperature
+  page: PAGE210.XML
+  value_key: __T87654321_REAL_.1f
+  kind: number
+  name: Pool target temperature
+  device_class: temperature
+  icon: mdi:thermometer
+  unit: C
+  precision: 1
+  mode: slider
+  min_value: 20
+  max_value: 35
+  step: 0.5
 ```
 
 ### Podporovane `kind`
