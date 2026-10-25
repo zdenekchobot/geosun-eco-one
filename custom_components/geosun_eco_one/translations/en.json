@@ -1,0 +1,54 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Geosun Eco One",
+        "description": "Connection settings for your GEOSUN Eco One unit.",
+        "data": {
+          "host": "Unit IP address or hostname",
+          "username": "Username",
+          "password": "Password",
+          "scan_interval": "Update interval (seconds)",
+          "device_id": "Device ID",
+          "device_name": "Device name",
+          "device_model": "Device model",
+          "device_manufacturer": "Device manufacturer"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Geosun Eco One",
+        "description": "The unit at {host} rejected the stored credentials. Enter the current ones.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the unit",
+      "invalid_auth": "Invalid username or password",
+      "invalid_host": "Invalid IP address or hostname",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This unit is already configured",
+      "reauth_successful": "Credentials updated"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Geosun Eco One options",
+        "description": "Select default entities and optionally add custom ones in YAML format.",
+        "data": {
+          "scan_interval": "Update interval (seconds)",
+          "enabled_default_entities": "Default entities",
+          "additional_entities": "Additional entities YAML"
+        }
+      }
+    },
+    "error": {
+      "invalid_additional_entities": "Invalid additional entities YAML: {error}"
+    }
+  }
+}

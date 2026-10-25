@@ -14,15 +14,25 @@
           "device_model": "Device model",
           "device_manufacturer": "Device manufacturer"
         }
+      },
+      "reauth_confirm": {
+        "title": "Geosun Eco One",
+        "description": "The unit at {host} rejected the stored credentials. Enter the current ones.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
       }
     },
     "error": {
       "cannot_connect": "Cannot connect to the unit",
       "invalid_auth": "Invalid username or password",
+      "invalid_host": "Invalid IP address or hostname",
       "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "This unit is already configured"
+      "already_configured": "This unit is already configured",
+      "reauth_successful": "Credentials updated"
     }
   },
   "options": {
@@ -38,7 +48,7 @@
       }
     },
     "error": {
-      "invalid_additional_entities": "Invalid additional entities YAML"
+      "invalid_additional_entities": "Invalid additional entities YAML: {error}"
     }
   }
 }

@@ -5,7 +5,25 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import re
+
 import yaml
+
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.components.number import NumberDeviceClass, NumberMode
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.components.switch import SwitchDeviceClass
+
+_OBJECT_ID = re.compile(r"^[A-Za-z0-9_]+$")
+
+# Supported entity kinds and the device classes valid for each of them.
+KINDS: dict[str, set[str]] = {
+    "sensor": {cls.value for cls in SensorDeviceClass},
+    "binary_sensor": {cls.value for cls in BinarySensorDeviceClass},
+    "switch": {cls.value for cls in SwitchDeviceClass},
+    "number": {cls.value for cls in NumberDeviceClass},
+    "text": set(),
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,6 +39,7 @@ class GeosunEntityDescription:
     icon: str | None = None
     unit: str | None = None
     precision: int | None = None
+    state_class: str | None = None
     payload_on: str | int | float | None = None
     payload_off: str | int | float | None = None
     mode: str | None = None
@@ -103,9 +122,9 @@ DEFAULT_ENTITIES: dict[str, GeosunEntityDescription] = {
         value_key="__T1E26BB4F_REAL_.2f",
         kind="sensor",
         name="Heat pump COP",
-        device_class="power_factor",
         icon="mdi:heat-pump",
         precision=2,
+        state_class="measurement",
     ),
     "heat_pump_relative_power": GeosunEntityDescription(
         object_id="heat_pump_relative_power",
@@ -113,7 +132,6 @@ DEFAULT_ENTITIES: dict[str, GeosunEntityDescription] = {
         value_key="__TF7A12A3D_REAL_.0f",
         kind="sensor",
         name="Heat pump relative power",
-        device_class="power_factor",
         icon="mdi:heat-pump",
         unit="%",
         precision=0,
@@ -266,8 +284,8 @@ DEFAULT_ENTITIES: dict[str, GeosunEntityDescription] = {
         unit="C",
         precision=1,
         mode="slider",
-        min_value=30,
-        max_value=60,
+        min_value=20,
+        max_value=55,
         step=1,
     ),
     "DHW_heating_from": GeosunEntityDescription(
@@ -314,7 +332,7 @@ def build_entity_definitions(
 
 
 def parse_additional_entities(text: str) -> list[GeosunEntityDescription]:
-    """Parse additional entities in YAML format."""
+    """Parse and validate additional entities in YAML format."""
     if not text.strip():
         return []
 
@@ -332,28 +350,60 @@ def parse_additional_entities(text: str) -> list[GeosunEntityDescription]:
             raise ValueError("Each additional entity must be an object")
 
         raw: dict[str, Any] = item
-        items.append(
-            GeosunEntityDescription(
-                object_id=_required_str(raw, "object_id"),
-                page=_required_str(raw, "page"),
-                value_key=_required_str(raw, "value_key"),
-                kind=_required_str(raw, "kind"),
-                name=_required_str(raw, "name"),
-                device_class=_optional_str(raw, "device_class"),
-                icon=_optional_str(raw, "icon"),
-                unit=_optional_str(raw, "unit"),
-                precision=_optional_int(raw, "precision"),
-                payload_on=raw.get("payload_on"),
-                payload_off=raw.get("payload_off"),
-                mode=_optional_str(raw, "mode"),
-                min_value=raw.get("min_value"),
-                max_value=raw.get("max_value"),
-                step=raw.get("step"),
-                pattern=_optional_str(raw, "pattern"),
-            )
-        )
+        object_id = _required_str(raw, "object_id")
+        try:
+            items.append(_parse_entity(object_id, raw))
+        except ValueError as exc:
+            raise ValueError(f"{object_id}: {exc}") from exc
+
+    object_ids = [item.object_id.lower() for item in items]
+    if duplicates := sorted({oid for oid in object_ids if object_ids.count(oid) > 1}):
+        raise ValueError(f"Duplicate object_id: {', '.join(duplicates)}")
 
     return items
+
+
+def _parse_entity(object_id: str, raw: dict[str, Any]) -> GeosunEntityDescription:
+    if not _OBJECT_ID.match(object_id):
+        raise ValueError("object_id may contain only letters, digits and underscores")
+
+    kind = _required_str(raw, "kind")
+    if kind not in KINDS:
+        raise ValueError(f"kind must be one of {', '.join(KINDS)}")
+
+    device_class = _optional_str(raw, "device_class")
+    if device_class is not None and device_class not in KINDS[kind]:
+        raise ValueError(f"device_class '{device_class}' is not valid for {kind}")
+
+    state_class = _optional_str(raw, "state_class")
+    if state_class is not None and (
+        kind != "sensor" or state_class not in {cls.value for cls in SensorStateClass}
+    ):
+        raise ValueError(f"state_class '{state_class}' is not valid for {kind}")
+
+    mode = _optional_str(raw, "mode")
+    if mode is not None and mode not in {mode.value for mode in NumberMode}:
+        raise ValueError(f"mode must be one of {', '.join(m.value for m in NumberMode)}")
+
+    return GeosunEntityDescription(
+        object_id=object_id,
+        page=_required_str(raw, "page"),
+        value_key=_required_str(raw, "value_key"),
+        kind=kind,
+        name=_required_str(raw, "name"),
+        device_class=device_class,
+        icon=_optional_str(raw, "icon"),
+        unit=_optional_str(raw, "unit"),
+        precision=_optional_int(raw, "precision"),
+        state_class=state_class,
+        payload_on=raw.get("payload_on"),
+        payload_off=raw.get("payload_off"),
+        mode=mode,
+        min_value=_optional_number(raw, "min_value"),
+        max_value=_optional_number(raw, "max_value"),
+        step=_optional_number(raw, "step"),
+        pattern=_optional_str(raw, "pattern"),
+    )
 
 
 def _required_str(payload: dict[str, Any], key: str) -> str:
@@ -376,6 +426,15 @@ def _optional_int(payload: dict[str, Any], key: str) -> int | None:
     value = payload.get(key)
     if value is None:
         return None
-    if not isinstance(value, int):
+    if not isinstance(value, int) or isinstance(value, bool):
         raise ValueError(f"Field '{key}' must be int")
+    return value
+
+
+def _optional_number(payload: dict[str, Any], key: str) -> float | int | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise ValueError(f"Field '{key}' must be a number")
     return value

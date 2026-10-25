@@ -2,39 +2,31 @@
 
 from __future__ import annotations
 
-from homeassistant.components.number import NumberDeviceClass, NumberEntity
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import DOMAIN
+from . import GeosunConfigEntry, GeosunRuntimeData
 from .entity import GeosunBaseEntity
 from .entity_definitions import GeosunEntityDescription
 
 UNIT_MAP = {
     "C": UnitOfTemperature.CELSIUS,
+    "°C": UnitOfTemperature.CELSIUS,
 }
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: GeosunConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Geosun numbers."""
-    runtime = hass.data[DOMAIN][entry.entry_id]
-    entities: dict[str, GeosunEntityDescription] = runtime["entities"]
-
+    runtime = entry.runtime_data
     async_add_entities(
-        GeosunNumber(
-            runtime["coordinator"],
-            runtime["client"],
-            description,
-            runtime["device"],
-            entry.entry_id,
-        )
-        for description in entities.values()
+        GeosunNumber(runtime, description, entry.entry_id)
+        for description in runtime.entities.values()
         if description.kind == "number"
     )
 
@@ -42,34 +34,27 @@ async def async_setup_entry(
 class GeosunNumber(GeosunBaseEntity, NumberEntity):
     """Representation of Geosun number entity."""
 
-    def __init__(self, coordinator, client, description, device, unique_prefix) -> None:
-        super().__init__(coordinator, description, device, unique_prefix)
-        self._client = client
-
-        self._attr_native_min_value = description.min_value
-        self._attr_native_max_value = description.max_value
-        self._attr_native_step = description.step
-        self._attr_mode = description.mode
-
-    @property
-    def device_class(self) -> NumberDeviceClass | None:
-        """Return device class."""
-        if not self.geosun_description.device_class:
-            return None
-        return NumberDeviceClass(self.geosun_description.device_class)
-
-    @property
-    def native_unit_of_measurement(self) -> str | None:
-        """Return configured unit."""
-        unit = self.geosun_description.unit
-        if unit is None:
-            return None
-        return UNIT_MAP.get(unit, unit)
-
-    @property
-    def suggested_display_precision(self) -> int | None:
-        """Return precision hint for UI."""
-        return self.geosun_description.precision
+    def __init__(
+        self,
+        runtime: GeosunRuntimeData,
+        description: GeosunEntityDescription,
+        unique_prefix: str,
+    ) -> None:
+        super().__init__(runtime, description, unique_prefix)
+        # Unset limits fall back to Home Assistant's defaults.
+        if description.min_value is not None:
+            self._attr_native_min_value = description.min_value
+        if description.max_value is not None:
+            self._attr_native_max_value = description.max_value
+        if description.step is not None:
+            self._attr_native_step = description.step
+        self._attr_mode = NumberMode(description.mode) if description.mode else NumberMode.AUTO
+        self._attr_device_class = (
+            NumberDeviceClass(description.device_class) if description.device_class else None
+        )
+        self._attr_native_unit_of_measurement = (
+            UNIT_MAP.get(description.unit, description.unit) if description.unit else None
+        )
 
     @property
     def native_value(self) -> float | None:
@@ -84,5 +69,4 @@ class GeosunNumber(GeosunBaseEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set numeric value."""
-        await self._client.async_set_value(self.geosun_description, value)
-        await self.coordinator.async_request_refresh()
+        await self._async_write_value(value)

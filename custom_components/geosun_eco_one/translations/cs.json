@@ -3,42 +3,52 @@
     "step": {
       "user": {
         "title": "Geosun Eco One",
-        "description": "Nastaveni pripojeni k jednotce GEOSUN Eco One.",
+        "description": "Nastavení připojení k jednotce GEOSUN Eco One.",
         "data": {
           "host": "IP adresa nebo hostname jednotky",
-          "username": "Uzivatel",
+          "username": "Uživatel",
           "password": "Heslo",
           "scan_interval": "Interval aktualizace (sekundy)",
-          "device_id": "ID zarizeni",
-          "device_name": "Nazev zarizeni",
-          "device_model": "Model zarizeni",
-          "device_manufacturer": "Vyrobce zarizeni"
+          "device_id": "ID zařízení",
+          "device_name": "Název zařízení",
+          "device_model": "Model zařízení",
+          "device_manufacturer": "Výrobce zařízení"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Geosun Eco One",
+        "description": "Jednotka {host} odmítla uložené přihlašovací údaje. Zadej aktuální.",
+        "data": {
+          "username": "Uživatel",
+          "password": "Heslo"
         }
       }
     },
     "error": {
-      "cannot_connect": "Nelze se pripojit k jednotce",
-      "invalid_auth": "Neplatne prihlasovaci udaje",
-      "unknown": "Neocekavana chyba"
+      "cannot_connect": "Nelze se připojit k jednotce",
+      "invalid_auth": "Neplatné přihlašovací údaje",
+      "invalid_host": "Neplatná IP adresa nebo hostname",
+      "unknown": "Neočekávaná chyba"
     },
     "abort": {
-      "already_configured": "Tato jednotka je jiz nakonfigurovana"
+      "already_configured": "Tato jednotka je již nakonfigurována",
+      "reauth_successful": "Přihlašovací údaje byly aktualizovány"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Moznosti Geosun Eco One",
-        "description": "Vyber vychozich entit a pripadne doplneni vlastnich entit ve formatu YAML.",
+        "title": "Možnosti Geosun Eco One",
+        "description": "Výběr výchozích entit a případné doplnění vlastních entit ve formátu YAML.",
         "data": {
           "scan_interval": "Interval aktualizace (sekundy)",
-          "enabled_default_entities": "Vychozi entity",
-          "additional_entities": "YAML dalsich entit"
+          "enabled_default_entities": "Výchozí entity",
+          "additional_entities": "YAML dalších entit"
         }
       }
     },
     "error": {
-      "invalid_additional_entities": "Neplatny YAML dalsich entit"
+      "invalid_additional_entities": "Neplatný YAML dalších entit: {error}"
     }
   }
 }
