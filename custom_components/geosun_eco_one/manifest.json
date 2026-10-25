@@ -5,11 +5,13 @@
     "@zdenekchobot"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/zdenekchobot/geosun_eco_one",
+  "documentation": "https://github.com/zdenekchobot/geosun-eco-one",
+  "integration_type": "device",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/zdenekchobot/geosun-eco-one/issues",
   "loggers": [
     "custom_components.geosun_eco_one"
   ],
   "requirements": [],
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfPower, UnitOfTemperature, PERCENTAGE
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
+from homeassistant.const import PERCENTAGE, UnitOfPower, UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import DOMAIN
+from . import GeosunConfigEntry, GeosunRuntimeData
 from .entity import GeosunBaseEntity
 from .entity_definitions import GeosunEntityDescription
 
 UNIT_MAP = {
     "C": UnitOfTemperature.CELSIUS,
+    "°C": UnitOfTemperature.CELSIUS,
     "kW": UnitOfPower.KILO_WATT,
     "%": PERCENTAGE,
 }
@@ -21,16 +21,14 @@ UNIT_MAP = {
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: GeosunConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Geosun sensors."""
-    runtime = hass.data[DOMAIN][entry.entry_id]
-    entities: dict[str, GeosunEntityDescription] = runtime["entities"]
-
+    runtime = entry.runtime_data
     async_add_entities(
-        GeosunSensor(runtime["coordinator"], description, runtime["device"], entry.entry_id)
-        for description in entities.values()
+        GeosunSensor(runtime, description, entry.entry_id)
+        for description in runtime.entities.values()
         if description.kind == "sensor"
     )
 
@@ -38,25 +36,25 @@ async def async_setup_entry(
 class GeosunSensor(GeosunBaseEntity, SensorEntity):
     """Representation of a Geosun sensor."""
 
-    @property
-    def device_class(self) -> SensorDeviceClass | None:
-        """Return sensor device class."""
-        if not self.geosun_description.device_class:
-            return None
-        return SensorDeviceClass(self.geosun_description.device_class)
-
-    @property
-    def native_unit_of_measurement(self) -> str | None:
-        """Return configured unit."""
-        unit = self.geosun_description.unit
-        if unit is None:
-            return None
-        return UNIT_MAP.get(unit, unit)
-
-    @property
-    def suggested_display_precision(self) -> int | None:
-        """Return precision hint for UI."""
-        return self.geosun_description.precision
+    def __init__(
+        self,
+        runtime: GeosunRuntimeData,
+        description: GeosunEntityDescription,
+        unique_prefix: str,
+    ) -> None:
+        super().__init__(runtime, description, unique_prefix)
+        self._attr_device_class = (
+            SensorDeviceClass(description.device_class) if description.device_class else None
+        )
+        self._attr_native_unit_of_measurement = (
+            UNIT_MAP.get(description.unit, description.unit) if description.unit else None
+        )
+        self._attr_suggested_display_precision = description.precision
+        # Numeric values get long-term statistics unless the definition says otherwise.
+        if description.state_class:
+            self._attr_state_class = SensorStateClass(description.state_class)
+        elif description.unit or description.device_class:
+            self._attr_state_class = SensorStateClass.MEASUREMENT
 
     @property
     def native_value(self) -> float | str | None:
@@ -68,4 +66,4 @@ class GeosunSensor(GeosunBaseEntity, SensorEntity):
         try:
             return float(raw)
         except ValueError:
-            return raw
+            return None if self.state_class else raw

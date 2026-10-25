@@ -2,34 +2,27 @@
 
 from __future__ import annotations
 
-from homeassistant.components.switch import SwitchEntity
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from typing import Any
 
-from .const import DOMAIN
+from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+from . import GeosunConfigEntry, GeosunRuntimeData
 from .entity import GeosunBaseEntity
 from .entity_definitions import GeosunEntityDescription
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: GeosunConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Geosun switches."""
-    runtime = hass.data[DOMAIN][entry.entry_id]
-    entities: dict[str, GeosunEntityDescription] = runtime["entities"]
-
+    runtime = entry.runtime_data
     async_add_entities(
-        GeosunSwitch(
-            runtime["coordinator"],
-            runtime["client"],
-            description,
-            runtime["device"],
-            entry.entry_id,
-        )
-        for description in entities.values()
+        GeosunSwitch(runtime, description, entry.entry_id)
+        for description in runtime.entities.values()
         if description.kind == "switch"
     )
 
@@ -37,9 +30,26 @@ async def async_setup_entry(
 class GeosunSwitch(GeosunBaseEntity, SwitchEntity):
     """Representation of Geosun switch."""
 
-    def __init__(self, coordinator, client, description, device, unique_prefix) -> None:
-        super().__init__(coordinator, description, device, unique_prefix)
-        self._client = client
+    def __init__(
+        self,
+        runtime: GeosunRuntimeData,
+        description: GeosunEntityDescription,
+        unique_prefix: str,
+    ) -> None:
+        super().__init__(runtime, description, unique_prefix)
+        self._attr_device_class = (
+            SwitchDeviceClass(description.device_class) if description.device_class else None
+        )
+
+    @property
+    def _payload_on(self) -> Any:
+        payload = self.geosun_description.payload_on
+        return 1 if payload is None else payload
+
+    @property
+    def _payload_off(self) -> Any:
+        payload = self.geosun_description.payload_off
+        return 0 if payload is None else payload
 
     @property
     def is_on(self) -> bool | None:
@@ -47,14 +57,12 @@ class GeosunSwitch(GeosunBaseEntity, SwitchEntity):
         raw = self._raw_value
         if raw is None:
             return None
-        return str(raw) == str(self.geosun_description.payload_on)
+        return str(raw) == str(self._payload_on)
 
-    async def async_turn_on(self, **kwargs) -> None:
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn entity on."""
-        await self._client.async_set_value(self.geosun_description, self.geosun_description.payload_on)
-        await self.coordinator.async_request_refresh()
+        await self._async_write_value(self._payload_on)
 
-    async def async_turn_off(self, **kwargs) -> None:
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn entity off."""
-        await self._client.async_set_value(self.geosun_description, self.geosun_description.payload_off)
-        await self.coordinator.async_request_refresh()
+        await self._async_write_value(self._payload_off)

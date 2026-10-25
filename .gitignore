@@ -1,1 +1,6 @@
 context.txt
+.venv/
+__pycache__/
+.pytest_cache/
+# Local copy of the production AppDaemon app (contains unit credentials)
+reference/

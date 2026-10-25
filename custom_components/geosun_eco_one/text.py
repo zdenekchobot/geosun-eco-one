@@ -3,33 +3,24 @@
 from __future__ import annotations
 
 from homeassistant.components.text import TextEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import DOMAIN
+from . import GeosunConfigEntry, GeosunRuntimeData
 from .entity import GeosunBaseEntity
 from .entity_definitions import GeosunEntityDescription
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: GeosunConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Geosun text entities."""
-    runtime = hass.data[DOMAIN][entry.entry_id]
-    entities: dict[str, GeosunEntityDescription] = runtime["entities"]
-
+    runtime = entry.runtime_data
     async_add_entities(
-        GeosunText(
-            runtime["coordinator"],
-            runtime["client"],
-            description,
-            runtime["device"],
-            entry.entry_id,
-        )
-        for description in entities.values()
+        GeosunText(runtime, description, entry.entry_id)
+        for description in runtime.entities.values()
         if description.kind == "text"
     )
 
@@ -37,9 +28,13 @@ async def async_setup_entry(
 class GeosunText(GeosunBaseEntity, TextEntity):
     """Representation of Geosun text entity."""
 
-    def __init__(self, coordinator, client, description, device, unique_prefix) -> None:
-        super().__init__(coordinator, description, device, unique_prefix)
-        self._client = client
+    def __init__(
+        self,
+        runtime: GeosunRuntimeData,
+        description: GeosunEntityDescription,
+        unique_prefix: str,
+    ) -> None:
+        super().__init__(runtime, description, unique_prefix)
         self._attr_pattern = description.pattern
 
     @property
@@ -49,5 +44,4 @@ class GeosunText(GeosunBaseEntity, TextEntity):
 
     async def async_set_value(self, value: str) -> None:
         """Set text value."""
-        await self._client.async_set_value(self.geosun_description, value)
-        await self.coordinator.async_request_refresh()
+        await self._async_write_value(value)
