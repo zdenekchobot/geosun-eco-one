@@ -43,12 +43,12 @@ class GeosunBaseEntity(CoordinatorEntity[GeosunDataUpdateCoordinator]):
         return self.coordinator.data.get(self.geosun_description.value_key)
 
     async def _async_write_value(self, value: Any) -> None:
-        """Write a value to the unit and refresh all values afterwards."""
+        """Write a value to the unit and show it in Home Assistant right away."""
         try:
-            await self._client.async_set_value(self.geosun_description, value)
+            written = await self._client.async_set_value(self.geosun_description, value)
         except GeosunClientError as err:
+            await self.coordinator.async_request_refresh()
             raise HomeAssistantError(
                 f"Failed to write {self.geosun_description.object_id}: {err}"
             ) from err
-        finally:
-            await self.coordinator.async_request_refresh()
+        self.coordinator.async_value_written(self.geosun_description.value_key, written)
