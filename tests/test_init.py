@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from datetime import timedelta
+
+from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
 from custom_components.geosun_eco_one.const import (
     CONF_ADDITIONAL_ENTITIES,
@@ -10,6 +12,7 @@ from custom_components.geosun_eco_one.const import (
     CONF_SCAN_INTERVAL,
     DOMAIN,
 )
+from custom_components.geosun_eco_one.coordinator import VERIFY_DELAY
 from custom_components.geosun_eco_one.entity_definitions import DEFAULT_ENTITIES
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.core import HomeAssistant
@@ -97,9 +100,8 @@ async def test_taken_entity_id_gets_suffix(hass: HomeAssistant, fake_unit) -> No
     assert hass.states.get("sensor.dhw_temperature_2").state == "29.9"
 
 
-async def test_switch_writes_and_refreshes(hass: HomeAssistant, fake_unit) -> None:
+async def test_writes_are_formatted(hass: HomeAssistant, fake_unit) -> None:
     await _setup(hass, fake_unit.host)
-    logins = fake_unit.logins
 
     await hass.services.async_call(
         "switch", "turn_off", {"entity_id": "switch.dhw_heater_setting"}, blocking=True
@@ -110,15 +112,57 @@ async def test_switch_writes_and_refreshes(hass: HomeAssistant, fake_unit) -> No
     await hass.services.async_call(
         "text", "set_value", {"entity_id": "text.dhw_heating_from", "value": "6:30"}, blocking=True
     )
-    await hass.async_block_till_done()
 
     assert fake_unit.posts == [
         ("PAGE143.XML", {"__TE5A77326_BOOL_i": "0"}),
         ("PAGE144.XML", {"__TDF2423B2_REAL_.1f": "45.0"}),
         ("PAGE144.XML", {"__T324BA0AB_TIME_Thh:mm": "06:30"}),
     ]
-    assert fake_unit.logins > logins + 3  # each write plus a refresh
+    assert hass.states.get("number.dhw_temperature_setting").state == "45.0"
+    assert hass.states.get("text.dhw_heating_from").state == "06:30"
     assert fake_unit.logins == fake_unit.logouts
+
+
+async def test_write_shows_state_at_once_then_verifies(
+    hass: HomeAssistant, fake_unit, freezer
+) -> None:
+    await _setup(hass, fake_unit.host)
+    logins = fake_unit.logins
+
+    await hass.services.async_call(
+        "switch", "turn_off", {"entity_id": "switch.dhw_heater_setting"}, blocking=True
+    )
+    await hass.services.async_call(
+        "switch", "turn_off", {"entity_id": "switch.dhw_heater_plan"}, blocking=True
+    )
+    # Shown immediately, without waiting for a read from the unit.
+    assert hass.states.get("switch.dhw_heater_setting").state == "off"
+    assert hass.states.get("switch.dhw_heater_plan").state == "off"
+    assert fake_unit.logins == logins + 2
+
+    freezer.tick(timedelta(seconds=VERIFY_DELAY))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    # One confirming read for both writes, the unit applied them.
+    assert fake_unit.logins == logins + 3
+    assert hass.states.get("switch.dhw_heater_setting").state == "off"
+    assert hass.states.get("switch.dhw_heater_plan").state == "off"
+
+
+async def test_write_not_applied_by_unit_reverts(hass: HomeAssistant, fake_unit, freezer) -> None:
+    await _setup(hass, fake_unit.host)
+    fake_unit.apply_posts = False
+
+    await hass.services.async_call(
+        "switch", "turn_off", {"entity_id": "switch.dhw_heater_setting"}, blocking=True
+    )
+    assert hass.states.get("switch.dhw_heater_setting").state == "off"
+
+    freezer.tick(timedelta(seconds=VERIFY_DELAY))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert hass.states.get("switch.dhw_heater_setting").state == "on"
 
 
 async def test_failed_write_raises(hass: HomeAssistant, fake_unit) -> None:

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from pathlib import Path
+import re
 import secrets
 
 from aiohttp import web
@@ -43,6 +44,8 @@ class FakeGeosun:
     max_concurrent_sessions: int = 0
     posts: list[tuple[str, dict[str, str]]] = field(default_factory=list)
     expire_sessions_on_post: bool = False
+    apply_posts: bool = True
+    written: dict[str, str] = field(default_factory=dict)
     host: str = ""
 
     def app(self) -> web.Application:
@@ -81,7 +84,14 @@ class FakeGeosun:
         path = FIXTURES / request.match_info["page"]
         if not path.is_file():
             raise web.HTTPNotFound()
-        return web.Response(body=path.read_bytes(), content_type="text/xml")
+        body = path.read_bytes()
+        for name, value in self.written.items():
+            body = re.sub(
+                rf'(NAME="{re.escape(name)}" VALUE=")[^"]*"'.encode(),
+                lambda m, v=value: m.group(1) + v.encode() + b'"',
+                body,
+            )
+        return web.Response(body=body, content_type="text/xml")
 
     async def _post_page(self, request: web.Request) -> web.Response:
         if self.expire_sessions_on_post:
@@ -89,7 +99,10 @@ class FakeGeosun:
         if not self._session(request):
             raise web.HTTPFound("/LOGIN.XML")
         form = await request.post()
-        self.posts.append((request.match_info["page"], {k: str(v) for k, v in form.items()}))
+        values = {k: str(v) for k, v in form.items()}
+        self.posts.append((request.match_info["page"], values))
+        if self.apply_posts:
+            self.written.update(values)
         return web.Response(text="", content_type="text/xml")
 
 

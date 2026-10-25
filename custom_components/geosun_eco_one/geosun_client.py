@@ -136,9 +136,10 @@ class GeosunClient:
         self,
         entity: GeosunEntityDescription,
         value: Any,
-    ) -> None:
-        """Write one value to GEOSUN unit."""
-        payload = {entity.value_key: format_value(entity.value_key, value)}
+    ) -> str:
+        """Write one value to GEOSUN unit and return it as the unit reports it."""
+        formatted = format_value(entity.value_key, value)
+        payload = {entity.value_key: formatted}
 
         async with self._lock, self._create_session() as session:
             await self._async_login(session)
@@ -154,6 +155,7 @@ class GeosunClient:
                 raise GeosunClientError(f"Failed to update value for {entity.object_id}") from err
             finally:
                 await self._async_logout(session)
+        return formatted
 
     async def async_test_connection(self) -> None:
         """Validate endpoint and credentials."""
