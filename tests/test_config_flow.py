@@ -104,3 +104,21 @@ async def test_options_flow_validates_yaml(hass: HomeAssistant, fake_unit) -> No
     await hass.async_block_till_done()
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options[CONF_SCAN_INTERVAL] == 45
+    assert "heat_pump_mode" in entry.options["known_default_entities"]
+
+
+async def test_options_form_preselects_new_defaults(hass: HomeAssistant, fake_unit) -> None:
+    saved = ["dhw_temperature"]
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=entry_data(fake_unit.host),
+        options={CONF_SCAN_INTERVAL: 30, CONF_ENABLED_DEFAULT_ENTITIES: saved},
+        unique_id="x",
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    field = next(k for k in result["data_schema"].schema if k == CONF_ENABLED_DEFAULT_ENTITIES)
+    assert field.default() == ["dhw_temperature", "heat_pump_mode"]

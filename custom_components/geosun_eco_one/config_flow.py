@@ -25,6 +25,7 @@ from .const import (
     CONF_DEVICE_NAME,
     CONF_ENABLED_DEFAULT_ENTITIES,
     CONF_HOST,
+    CONF_KNOWN_DEFAULT_ENTITIES,
     CONF_SCAN_INTERVAL,
     DEFAULT_DEVICE_MANUFACTURER,
     DEFAULT_DEVICE_MODEL,
@@ -32,7 +33,11 @@ from .const import (
     DOMAIN,
     MIN_SCAN_INTERVAL,
 )
-from .entity_definitions import DEFAULT_ENTITIES, parse_additional_entities
+from .entity_definitions import (
+    DEFAULT_ENTITIES,
+    build_entity_definitions,
+    parse_additional_entities,
+)
 from .geosun_client import (
     GeosunAuthenticationError,
     GeosunClient,
@@ -71,7 +76,12 @@ def _user_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
 
 
 def _options_schema(config_entry: ConfigEntry, defaults: Mapping[str, Any]) -> vol.Schema:
-    default_enabled = defaults.get(CONF_ENABLED_DEFAULT_ENTITIES, list(DEFAULT_ENTITIES.keys()))
+    enabled = build_entity_definitions(
+        defaults.get(CONF_ENABLED_DEFAULT_ENTITIES),
+        "",
+        defaults.get(CONF_KNOWN_DEFAULT_ENTITIES),
+    )
+    default_enabled = [key for key in DEFAULT_ENTITIES if key in enabled]
 
     return vol.Schema(
         {
@@ -190,11 +200,18 @@ class GeosunOptionsFlow(OptionsFlow):
                 errors[CONF_ADDITIONAL_ENTITIES] = "invalid_additional_entities"
                 placeholders["error"] = str(err)
             else:
-                return self.async_create_entry(data=user_input)
+                return self.async_create_entry(
+                    data={**user_input, CONF_KNOWN_DEFAULT_ENTITIES: list(DEFAULT_ENTITIES)}
+                )
 
         return self.async_show_form(
             step_id="init",
-            data_schema=_options_schema(self.config_entry, user_input or self.config_entry.options),
+            data_schema=_options_schema(
+                self.config_entry,
+                {**user_input, CONF_KNOWN_DEFAULT_ENTITIES: list(DEFAULT_ENTITIES)}
+                if user_input
+                else self.config_entry.options,
+            ),
             errors=errors,
             description_placeholders=placeholders,
         )

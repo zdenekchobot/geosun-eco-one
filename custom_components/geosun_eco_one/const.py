@@ -16,6 +16,7 @@ CONF_DEVICE_MODEL = "device_model"
 CONF_DEVICE_MANUFACTURER = "device_manufacturer"
 CONF_ENABLED_DEFAULT_ENTITIES = "enabled_default_entities"
 CONF_ADDITIONAL_ENTITIES = "additional_entities"
+CONF_KNOWN_DEFAULT_ENTITIES = "known_default_entities"
 
 DEFAULT_SCAN_INTERVAL = 30
 MIN_SCAN_INTERVAL = 15
