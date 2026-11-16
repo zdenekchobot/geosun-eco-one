@@ -47,6 +47,10 @@ class GeosunEntityDescription:
     max_value: float | int | None = None
     step: float | int | None = None
     pattern: str | None = None
+    # Text state derived from boolean flags: the label of the first flag that
+    # is on, else `flag_default`. Keys must be on the same page as `value_key`.
+    flag_states: tuple[tuple[str, str], ...] = ()
+    flag_default: str | None = None
 
 
 DEFAULT_ENTITIES: dict[str, GeosunEntityDescription] = {
@@ -168,6 +172,20 @@ DEFAULT_ENTITIES: dict[str, GeosunEntityDescription] = {
         icon="mdi:home-thermometer",
         unit="C",
         precision=1,
+    ),
+    "heat_pump_mode": GeosunEntityDescription(
+        object_id="heat_pump_mode",
+        page="PAGE196.XML",
+        value_key="__T39EF2789_BOOL_i",
+        kind="sensor",
+        name="Heat pump mode",
+        icon="mdi:heat-pump",
+        flag_states=(
+            ("__T39EF2789_BOOL_i", "Heating"),
+            ("__T192CCB67_BOOL_i", "Cooling"),
+            ("__TF62A071D_BOOL_i", "Defrosting"),
+        ),
+        flag_default="off",
     ),
     "hw_heater_setting": GeosunEntityDescription(
         object_id="hw_heater_setting",
@@ -312,12 +330,18 @@ DEFAULT_ENTITIES: dict[str, GeosunEntityDescription] = {
 def build_entity_definitions(
     enabled_default_entities: list[str] | None,
     additional_entities_yaml: str,
+    known_default_entities: list[str] | None = None,
 ) -> dict[str, GeosunEntityDescription]:
-    """Build final definitions from default + user additions."""
+    """Build final definitions from default + user additions.
+
+    Default entities added in a newer version than the saved options are
+    enabled, so they appear without opening the options again.
+    """
     if enabled_default_entities is None:
         selected = set(DEFAULT_ENTITIES)
     else:
-        selected = set(enabled_default_entities)
+        known = set(known_default_entities or LEGACY_DEFAULT_ENTITIES)
+        selected = set(enabled_default_entities) | (set(DEFAULT_ENTITIES) - known)
 
     entities = {
         key: definition
@@ -329,6 +353,10 @@ def build_entity_definitions(
         entities[entity.object_id] = entity
 
     return entities
+
+
+# Default entities of version 0.2.0, whose options did not record them.
+LEGACY_DEFAULT_ENTITIES = frozenset(DEFAULT_ENTITIES) - {"heat_pump_mode"}
 
 
 def parse_additional_entities(text: str) -> list[GeosunEntityDescription]:

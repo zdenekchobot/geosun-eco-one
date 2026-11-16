@@ -53,9 +53,19 @@ priponu `_2` a automatizace budou dal ukazovat na stare entity. Proto postupuj v
 Historie stavu navazuje, protoze je vazana na `entity_id`. Dlouhodobe statistiky zacnou nove,
 protoze MQTT entity je neukladaly.
 
+### Nahrada template senzoru `sensor.heat_pump_mode`
+
+Od verze 0.3.0 integrace vytvari `sensor.heat_pump_mode` sama. Pokud ho mas jako template senzor,
+odstran ho drive, nez novou verzi nasadis, jinak nova entita dostane `sensor.heat_pump_mode_2`:
+
+1. Smaz template senzor z konfigurace (blok `template:` s `unique_id: heat_pump_mode`).
+2. Restartuj HA a v `Settings -> Entities` smaz zbylou entitu `sensor.heat_pump_mode`
+   (bude ve stavu `unavailable`/`not provided`).
+3. Nasad novou verzi integrace a restartuj HA.
+
 ## Vychozi entity
 
-Aktualne obsahuje 24 entit.
+Aktualne obsahuje 25 entit.
 
 ### Senzory
 
@@ -72,6 +82,11 @@ Aktualne obsahuje 24 entit.
 | `sensor.water_heater_in` | Water heater in | PAGE196.XML, `__T7FEC1C3B_REAL_.1f` |
 | `sensor.water_heater_out` | Water heater out | PAGE196.XML, `__T20F39926_REAL_.1f` |
 | `sensor.outside_temperature_now` | Outside temperature | PAGE183.XML, `__TFF513049_REAL_.1f` |
+| `sensor.heat_pump_mode` | Heat pump mode | PAGE196.XML, odvozeno z rezimu HEAT/COOL/DEFROST |
+
+`sensor.heat_pump_mode` ma stav `Heating`, `Cooling`, `Defrosting` nebo `off` (v tomto poradi
+priority) podle `binary_sensor.pump_mode_heat`, `pump_mode_cool` a `pump_mode_defrost`.
+Vychozi entity pridane v nove verzi se zapnou samy, i kdyz uz mas ulozene `Options`.
 
 ### Switche
 

@@ -17,6 +17,7 @@ from .const import (
     CONF_DEVICE_NAME,
     CONF_ENABLED_DEFAULT_ENTITIES,
     CONF_HOST,
+    CONF_KNOWN_DEFAULT_ENTITIES,
     CONF_SCAN_INTERVAL,
     DOMAIN,
     PLATFORMS,
@@ -45,6 +46,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GeosunConfigEntry) -> bo
     entity_definitions = build_entity_definitions(
         options.get(CONF_ENABLED_DEFAULT_ENTITIES),
         options.get(CONF_ADDITIONAL_ENTITIES, ""),
+        options.get(CONF_KNOWN_DEFAULT_ENTITIES),
     )
 
     client = GeosunClient(

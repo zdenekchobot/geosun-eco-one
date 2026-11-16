@@ -32,6 +32,7 @@ LEGACY_ENTITY_IDS = [
     "sensor.water_heater_in",
     "sensor.water_heater_out",
     "sensor.outside_temperature_now",
+    "sensor.heat_pump_mode",
     "switch.hw_heater_setting",
     "switch.dhw_heater_setting",
     "switch.dhw_heater_plan",
@@ -89,6 +90,36 @@ async def test_entity_states(hass: HomeAssistant, fake_unit) -> None:
     assert setting.state == "32.0"
     assert setting.attributes["min"] == 20
     assert setting.attributes["max"] == 55
+
+
+async def test_heat_pump_mode(hass: HomeAssistant, fake_unit) -> None:
+    entry = await _setup(hass, fake_unit.host)
+    state = hass.states.get("sensor.heat_pump_mode")
+    assert state.state == "Heating"
+    assert state.attributes["icon"] == "mdi:heat-pump"
+    assert state.attributes["friendly_name"] == "Eco Heat pump mode"
+    assert "state_class" not in state.attributes
+
+    heat, cool, defrost = "__T39EF2789_BOOL_i", "__T192CCB67_BOOL_i", "__TF62A071D_BOOL_i"
+    for flags, expected in [
+        ({heat: "0", cool: "1", defrost: "1"}, "Cooling"),
+        ({heat: "0", cool: "0", defrost: "1"}, "Defrosting"),
+        ({heat: "0", cool: "0", defrost: "0"}, "off"),
+        ({heat: "1", cool: "1", defrost: "0"}, "Heating"),
+    ]:
+        fake_unit.written.update(flags)
+        await entry.runtime_data.coordinator.async_refresh()
+        await hass.async_block_till_done()
+        assert hass.states.get("sensor.heat_pump_mode").state == expected
+
+
+async def test_new_default_entity_appears_with_saved_options(hass: HomeAssistant, fake_unit) -> None:
+    """Options saved by 0.2.0 do not list heat_pump_mode, it is still created."""
+    saved = sorted(set(DEFAULT_ENTITIES) - {"heat_pump_mode", "pump_mode_cool"})
+    await _setup(hass, fake_unit.host, **{CONF_ENABLED_DEFAULT_ENTITIES: saved})
+
+    assert hass.states.get("sensor.heat_pump_mode").state == "Heating"
+    assert hass.states.get("binary_sensor.pump_mode_cool") is None
 
 
 async def test_taken_entity_id_gets_suffix(hass: HomeAssistant, fake_unit) -> None:

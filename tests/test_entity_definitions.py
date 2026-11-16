@@ -42,9 +42,21 @@ def test_valid_yaml() -> None:
 
 
 def test_build_merges_defaults_and_additions() -> None:
-    entities = build_entity_definitions(["dhw_temperature"], VALID)
+    entities = build_entity_definitions(["dhw_temperature"], VALID, list(DEFAULT_ENTITIES))
     assert set(entities) == {"dhw_temperature", "pool_temperature", "pool_target"}
     assert build_entity_definitions(None, "") == DEFAULT_ENTITIES
+
+
+def test_new_defaults_follow_known_list() -> None:
+    legacy_selection = sorted(set(DEFAULT_ENTITIES) - {"heat_pump_mode", "dhw_temperature"})
+
+    # Options saved before heat_pump_mode existed: it is added.
+    assert "heat_pump_mode" in build_entity_definitions(legacy_selection, "")
+    # Options saved with it known but deselected: it stays off.
+    known = list(DEFAULT_ENTITIES)
+    entities = build_entity_definitions(legacy_selection, "", known)
+    assert "heat_pump_mode" not in entities
+    assert "dhw_temperature" not in entities
 
 
 @pytest.mark.parametrize(

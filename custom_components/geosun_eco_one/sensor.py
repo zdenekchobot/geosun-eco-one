@@ -59,6 +59,9 @@ class GeosunSensor(GeosunBaseEntity, SensorEntity):
     @property
     def native_value(self) -> float | str | None:
         """Return parsed sensor value."""
+        if self.geosun_description.flag_states:
+            return self._flag_state()
+
         raw = self._raw_value
         if raw is None:
             return None
@@ -67,3 +70,13 @@ class GeosunSensor(GeosunBaseEntity, SensorEntity):
             return float(raw)
         except ValueError:
             return None if self.state_class else raw
+
+    def _flag_state(self) -> str | None:
+        data = self.coordinator.data
+        flags = self.geosun_description.flag_states
+        if any(key not in data for key, _ in flags):
+            return None
+        for key, label in flags:
+            if data[key] == "1":
+                return label
+        return self.geosun_description.flag_default
